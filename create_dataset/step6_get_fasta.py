@@ -7,10 +7,10 @@ def get_pdbid_to_uniprot():
 			try:
 				pdbid, uniprotid, ligand, inchi, seq, measure, value = line.strip().split('\t')
 			except:
-				print(line.strip().split('\t'))
+				print((line.strip().split('\t')))
 				assert 0
 			pdbid_to_uniprot[pdbid] = (uniprotid, seq)
-	print('pdbid_to_uniprot',len(pdbid_to_uniprot))
+	print(('pdbid_to_uniprot',len(pdbid_to_uniprot)))
 	return pdbid_to_uniprot
 pdbid_to_uniprot = get_pdbid_to_uniprot()
 
