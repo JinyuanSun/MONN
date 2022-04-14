@@ -28,7 +28,7 @@ def get_pdbid_to_ligand():
 					#print(line[:4], ligand)
 					continue
 				pdbid_to_ligand[line[:4]] = ligand
-	print('pdbid_to_ligand',len(pdbid_to_ligand))
+	print(('pdbid_to_ligand',len(pdbid_to_ligand)))
 	return pdbid_to_ligand
 pdbid_to_ligand = get_pdbid_to_ligand()
 	
@@ -69,6 +69,30 @@ def get_result_dict():
 				seq_query += line.split('\t')[1]
 	f.close()
 	return result_dict
+
+
+def parse_monn_modified_alignment(align_file):
+    align_result_dict = {}
+    with open(align_file,'r') as alignment:
+        for line in alignment:
+            if line.startswith("target_name"):
+                target_name = line.strip().split(" ")[1]
+                # result_dict[target_name] = (seq_target, seq_query, align, target_start, query_start)
+                align_result_dict[target_name] = ["", "", "", 0, 0]
+            if line.startswith("optimal_alignment_score"):
+                target_start = int(line.split()[7])
+                query_start = int(line.split()[11])
+                align_result_dict[target_name][3] = target_start
+                align_result_dict[target_name][4] = query_start
+            if line.startswith(" "):
+                align_result_dict[target_name][2] += line.strip('\n').split('\t')[1]
+            if line.startswith("Target"):
+                align_result_dict[target_name][0] += line.split("\t")[1]
+            if line.startswith("Query"):
+                align_result_dict[target_name][1] += line.split("\t")[1]
+        alignment.close()
+    return align_result_dict
+
 
 def seq_with_gap_to_idx(seq):
 	idx_list = []
@@ -136,7 +160,7 @@ def get_pocket_in_uniprot_seq(pocket_dict, protein_dict, pdb_to_uniprot, uniprot
 		for idx in pocket_idx:
 			i += 1
 			if full_idx.count(idx) != 1:             # some positions in pdb sequence may have the same idx
-				print('idx_list.count(idx) != 1', idx)
+				print(('idx_list.count(idx) != 1', idx))
 			seq_pos = full_idx.index(idx)   # position along pdb sequence
 			if seq_pos >= len(pdb_to_uniprot[chain]):
 				continue
@@ -154,10 +178,10 @@ with open('out5_pocket_dict','rb') as f:
 	pdbbind_pocket_dict = pickle.load(f)
 
 pdbid_to_ligand = get_pdbid_to_ligand()
-result_dict = get_result_dict()
-print('result_dict',len(result_dict))
+result_dict = parse_monn_modified_alignment('./smith-waterman-src/out6.4_pdbbind_align.txt')
+print(('result_dict',len(result_dict)))
 pdb_to_uniprot_map_dict = get_pdb_to_uniprot_map(result_dict)
-print('pdb_to_uniprot_map_dict',len(pdb_to_uniprot_map_dict))
+print(('pdb_to_uniprot_map_dict',len(pdb_to_uniprot_map_dict)))
 
 i = 0
 count_not_in_dataset = 0
@@ -194,9 +218,9 @@ for pdbid in pdbbind_pocket_dict:
 	pdbbind_pocket_dict_final[pdbid]['uniprot_seq'] = uniprot_seq
 
 
-print('pdbbind_pocket_dict_final', len(pdbbind_pocket_dict_final))
-print('count_not_in_dataset',count_not_in_dataset)
-print 'count_not_same_seq', count_not_same_seq
-print 'count_not_align', count_not_align
+print(('pdbbind_pocket_dict_final', len(pdbbind_pocket_dict_final)))
+print(('count_not_in_dataset',count_not_in_dataset))
+print('count_not_same_seq', count_not_same_seq)
+print('count_not_align', count_not_align)
 with open('out8_final_pocket_dict','wb') as f:
 	pickle.dump(pdbbind_pocket_dict_final,f,protocol=0)

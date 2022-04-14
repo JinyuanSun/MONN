@@ -6,7 +6,7 @@ def get_pdbid_list():
 		for line in f.readlines():
 			if line[0] != '#':
 				pdbid_list.append(line.strip().split()[0])
-	print('pdbid_list',len(pdbid_list))
+	print(('pdbid_list',len(pdbid_list)))
 	return pdbid_list
 pdbid_list = get_pdbid_list()
 
@@ -35,7 +35,7 @@ def get_pdbid_to_ligand():
 					#print(line[:4], ligand)
 					continue
 				pdbid_to_ligand[line[:4]] = ligand
-	print('pdbid_to_ligand',len(pdbid_to_ligand))
+	print(('pdbid_to_ligand',len(pdbid_to_ligand)))
 	return pdbid_to_ligand
 pdbid_to_ligand = get_pdbid_to_ligand()
 

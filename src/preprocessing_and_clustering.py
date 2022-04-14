@@ -21,7 +21,7 @@ max_nb = 6
 def onek_encoding_unk(x, allowable_set):
     if x not in allowable_set:
         x = allowable_set[-1]
-    return list(map(lambda s: x == s, allowable_set))
+    return list([x == s for s in allowable_set])
 
 
 def atom_features(atom):
@@ -79,8 +79,8 @@ def Mol2Graph(mol):
 
 
 def Batch_Mol2Graph(mol_list):
-    res = list(map(lambda x:Mol2Graph(x), mol_list))
-    fatom_list, fbond_list, gatom_list, gbond_list, nb_list = zip(*res)
+    res = list([Mol2Graph(x) for x in mol_list])
+    fatom_list, fbond_list, gatom_list, gbond_list, nb_list = list(zip(*res))
     return fatom_list, fbond_list, gatom_list, gbond_list, nb_list
 
 
@@ -100,14 +100,14 @@ def Protein2Sequence(sequence, ngram=1):
 
 
 def Batch_Protein2Sequence(sequence_list, ngram=3):
-    res = list(map(lambda x:Protein2Sequence(x,ngram), sequence_list))
+    res = list([Protein2Sequence(x,ngram) for x in sequence_list])
     return res
 
 
 def get_mol_dict():
     if os.path.exists('../data/mol_dict'):
-        with open('../data/mol_dict') as f:
-            mol_dict = pickle.load(f)
+        with open('../data/mol_dict', 'rb') as f:
+            mol_dict = pickle.load(f,encoding='bytes')
     else:
         mol_dict = {}
         mols = Chem.SDMolSupplier('../data/Components-pub.sdf')
@@ -118,7 +118,7 @@ def get_mol_dict():
             mol_dict[name] = m
         with open('../data/mol_dict', 'wb') as f:
             pickle.dump(mol_dict, f)
-    #print('mol_dict',len(mol_dict))
+        #print('mol_dict',len(mol_dict))
     return mol_dict
 
 
@@ -170,11 +170,11 @@ def calculate_sims(fps1,fps2,simtype='tanimoto'):
 
 
 def compound_clustering(ligand_list, mol_list):
-    print 'start compound clustering...'
+    print('start compound clustering...')
     fps = get_fps(mol_list)
     sim_mat = calculate_sims(fps, fps)
     #np.save('../preprocessing/'+MEASURE+'_compound_sim_mat.npy', sim_mat)
-    print 'compound sim mat', sim_mat.shape
+    print('compound sim mat', sim_mat.shape)
     C_dist = pdist(fps, 'jaccard')
     C_link = single(C_dist)
     for thre in [0.3, 0.4, 0.5, 0.6]:
@@ -182,18 +182,18 @@ def compound_clustering(ligand_list, mol_list):
         len_list = []
         for i in range(1,max(C_clusters)+1):
             len_list.append(C_clusters.tolist().count(i))
-        print 'thre', thre, 'total num of compounds', len(ligand_list), 'num of clusters', max(C_clusters), 'max length', max(len_list)
+        print('thre', thre, 'total num of compounds', len(ligand_list), 'num of clusters', max(C_clusters), 'max length', max(len_list))
         C_cluster_dict = {ligand_list[i]:C_clusters[i] for i in range(len(ligand_list))}
         with open('../preprocessing/'+MEASURE+'_compound_cluster_dict_'+str(thre),'wb') as f:
             pickle.dump(C_cluster_dict, f, protocol=0)
 
 
 def protein_clustering(protein_list, idx_list):
-    print 'start protein clustering...'
+    print('start protein clustering...')
     protein_sim_mat = np.load('../data/pdbbind_protein_sim_mat.npy').astype(np.float32)
     sim_mat = protein_sim_mat[idx_list, :]
     sim_mat = sim_mat[:, idx_list]
-    print 'original protein sim_mat', protein_sim_mat.shape, 'subset sim_mat', sim_mat.shape
+    print('original protein sim_mat', protein_sim_mat.shape, 'subset sim_mat', sim_mat.shape)
     #np.save('../preprocessing/'+MEASURE+'_protein_sim_mat.npy', sim_mat)
     P_dist = []
     for i in range(sim_mat.shape[0]):
@@ -205,7 +205,7 @@ def protein_clustering(protein_list, idx_list):
         len_list = []
         for i in range(1,max(P_clusters)+1):
             len_list.append(P_clusters.tolist().count(i))
-        print 'thre', thre, 'total num of proteins', len(protein_list), 'num of clusters', max(P_clusters), 'max length', max(len_list)
+        print('thre', thre, 'total num of proteins', len(protein_list), 'num of clusters', max(P_clusters), 'max length', max(len_list))
         P_cluster_dict = {protein_list[i]:P_clusters[i] for i in range(len(protein_list))}
         with open('../preprocessing/'+MEASURE+'_protein_cluster_dict_'+str(thre),'wb') as f:
             pickle.dump(P_cluster_dict, f, protocol=0)
@@ -215,9 +215,9 @@ def pickle_dump(dictionary, file_name):
 
 if __name__ == "__main__":
     
-    MEASURE = 'KIKD' # 'IC50' or 'KIKD'
-    print 'Create dataset for measurement:', MEASURE
-    print 'Step 1/5, loading dict...'
+    MEASURE = 'IC50' # 'IC50' or 'KIKD'
+    print('Create dataset for measurement:', MEASURE)
+    print('Step 1/5, loading dict...')
     # load label dicts
     mol_dict = get_mol_dict()
     with open('../data/out7_final_pairwise_interaction_dict','rb') as f:
@@ -236,11 +236,11 @@ if __name__ == "__main__":
     i = 0
     pair_info_dict = {}
     f = open('../data/pdbbind_all_datafile.tsv')
-    print 'Step 2/5, generating labels...'
+    print('Step 2/5, generating labels...')
     for line in f.readlines():
         i += 1
         if i % 1000 == 0:
-            print 'processed sample num', i
+            print('processed sample num', i)
         pdbid, pid, cid, inchi, seq, measure, label = line.strip().split('\t')
         # filter interaction type and invalid molecules
         if MEASURE == 'All':
@@ -250,10 +250,12 @@ if __name__ == "__main__":
                 continue
         elif measure != MEASURE:
             continue
-        if cid not in mol_dict:
-            print 'ligand not in mol_dict'
+        if str.encode(cid) not in mol_dict:
+            print(f'ligand {cid} not in mol_dict')
+            # print(cid)
+            # exit()
             continue
-        mol = mol_dict[cid]
+        mol = mol_dict[str.encode(cid)]
         
         # get labels
         value = float(label)
@@ -271,7 +273,7 @@ if __name__ == "__main__":
                     pair_info_dict[inchi+' '+pid] = [pdbid, cid, pid, value, mol, seq, pairwise_mask, pairwise_mat]
     f.close()
     
-    print 'Step 3/5, generating inputs...'
+    print('Step 3/5, generating inputs...')
     valid_value_list = []
     valid_cid_list = []
     valid_pid_list = []
@@ -284,7 +286,7 @@ if __name__ == "__main__":
         pdbid, cid, pid, value, mol, seq, pairwise_mask, pairwise_mat = pair_info_dict[item]
         fa, fb, anb, bnb, nbs_mat = Mol2Graph(mol)
         if fa==[]:
-            print 'num of neighbor > 6, ', cid
+            print('num of neighbor > 6, ', cid)
             continue
         mol_inputs.append([fa, fb, anb, bnb, nbs_mat])
         seq_inputs.append(Protein2Sequence(seq,ngram=1))
@@ -295,9 +297,9 @@ if __name__ == "__main__":
         valid_pairwise_mat_list.append(pairwise_mat)
         wlnn_train_list.append(pdbid)
     
-    print 'Step 4/5, saving data...'
+    print('Step 4/5, saving data...')
     # get data pack
-    fa_list, fb_list, anb_list, bnb_list, nbs_mat_list = zip(*mol_inputs)
+    fa_list, fb_list, anb_list, bnb_list, nbs_mat_list = list(zip(*mol_inputs))
     data_pack = [np.array(fa_list), np.array(fb_list), np.array(anb_list), np.array(bnb_list), np.array(nbs_mat_list), np.array(seq_inputs), \
     np.array(valid_value_list), np.array(valid_cid_list), np.array(valid_pid_list), np.array(valid_pairwise_mask_list), np.array(valid_pairwise_mat_list)]
     
@@ -311,19 +313,31 @@ if __name__ == "__main__":
     pickle_dump(bond_dict, '../preprocessing/pdbbind_all_bond_dict_'+MEASURE)
     pickle_dump(word_dict, '../preprocessing/pdbbind_all_word_dict_'+MEASURE)
     
-    print 'Step 5/5, clustering...'
+    print('Step 5/5, clustering...')
     compound_list = list(set(valid_cid_list))
     protein_list = list(set(valid_pid_list))
     # compound clustering
-    mol_list = [mol_dict[ligand] for ligand in compound_list]
+    mol_list = [mol_dict[str.encode(ligand)] for ligand in compound_list]
     compound_clustering(compound_list, mol_list)
     # protein clustering
     ori_protein_list = np.load('../data/pdbbind_protein_list.npy').tolist()
-    idx_list = [ori_protein_list.index(pid) for pid in protein_list]
+    idx_list = []
+    protein_list_length = len(protein_list)
+    miss_list = []
+    for i in range(protein_list_length):
+        pid = protein_list[i]
+        try:
+            idx_list.append(ori_protein_list.index(str.encode(pid)))
+        except ValueError:
+            print(pid)
+            miss_list.append(i)
+    for i in miss_list:
+        protein_list.pop(i)
+    # idx_list = [ori_protein_list.index(str.encode(pid)) for pid in protein_list]
     protein_clustering(protein_list, idx_list)
     
-    print '='*50
-    print 'Finish generating dataset for measurement', MEASURE
-    print 'Number of valid samples', len(valid_value_list)
-    print 'Number of unique compounds', len(compound_list)
-    print 'Number of unique proteins', len(protein_list)
+    print('='*50)
+    print('Finish generating dataset for measurement', MEASURE)
+    print('Number of valid samples', len(valid_value_list))
+    print('Number of unique compounds', len(compound_list))
+    print('Number of unique proteins', len(protein_list))

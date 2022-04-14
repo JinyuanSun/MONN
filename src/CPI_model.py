@@ -8,7 +8,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.utils import weight_norm
-#from sru import SRU, SRUCell
+# from sru import SRU, SRUCell
 from pdbbind_utils import *
 
 #some predefined parameters
@@ -65,12 +65,12 @@ class Net(nn.Module):
 		self.embed_seq.weight = nn.Parameter(self.init_word_features)
 		self.embed_seq.weight.requires_grad = False
 		
-		self.conv_first = nn.Conv1d(20, self.hidden_size1, kernel_size=self.kernel_size, padding=(self.kernel_size-1)/2)
-		self.conv_last = nn.Conv1d(self.hidden_size1, self.hidden_size1, kernel_size=self.kernel_size, padding=(self.kernel_size-1)/2)
+		self.conv_first = nn.Conv1d(20, self.hidden_size1, kernel_size=self.kernel_size, padding=int((self.kernel_size-1)/2))
+		self.conv_last = nn.Conv1d(self.hidden_size1, self.hidden_size1, kernel_size=self.kernel_size, padding=int((self.kernel_size-1)/2))
 		
 		self.plain_CNN = nn.ModuleList([])
 		for i in range(self.inner_CNN_depth):
-			self.plain_CNN.append(nn.Conv1d(self.hidden_size1, self.hidden_size1, kernel_size=self.kernel_size, padding=(self.kernel_size-1)/2))
+			self.plain_CNN.append(nn.Conv1d(self.hidden_size1, self.hidden_size1, kernel_size=self.kernel_size, padding=int((self.kernel_size-1)/2)))
 		
 		#RNN parameters
 		#self.rnn = SRU(input_size=self.hidden_size1, hidden_size=self.hidden_size1/2, num_layers=1, dropout=0.0, bidirectional=True, layer_norm=False, rescale=True)
@@ -229,11 +229,11 @@ class Net(nn.Module):
 		
 		m = c0*p0
 		for DMA_iter in range(self.DMA_depth):
-			c_to_p = torch.matmul(pairwise_pred.transpose(1,2), F.tanh(self.c_to_p_transform[DMA_iter](comp_feats)))  # batch * n_residue * hidden
-			p_to_c = torch.matmul(pairwise_pred, F.tanh(self.p_to_c_transform[DMA_iter](prot_feats)))  # batch * n_vertex * hidden
+			c_to_p = torch.matmul(pairwise_pred.transpose(1,2), torch.tanh(self.c_to_p_transform[DMA_iter](comp_feats)))  # batch * n_residue * hidden
+			p_to_c = torch.matmul(pairwise_pred, torch.tanh(self.p_to_c_transform[DMA_iter](prot_feats)))  # batch * n_vertex * hidden
 
-			c_tmp = F.tanh(self.hc0[DMA_iter](comp_feats))*F.tanh(self.mc1[DMA_iter](m)).view(batch_size,1,-1)*p_to_c
-			p_tmp = F.tanh(self.hp0[DMA_iter](prot_feats))*F.tanh(self.mp1[DMA_iter](m)).view(batch_size,1,-1)*c_to_p
+			c_tmp = torch.tanh(self.hc0[DMA_iter](comp_feats))*torch.tanh(self.mc1[DMA_iter](m)).view(batch_size,1,-1)*p_to_c
+			p_tmp = torch.tanh(self.hp0[DMA_iter](prot_feats))*torch.tanh(self.mp1[DMA_iter](m)).view(batch_size,1,-1)*c_to_p
 			
 			c_att = self.mask_softmax(self.hc1[DMA_iter](c_tmp).view(batch_size,-1), vertex_mask.view(batch_size,-1)) 
 			p_att = self.mask_softmax(self.hp1[DMA_iter](p_tmp).view(batch_size,-1), seq_mask.view(batch_size,-1))
@@ -251,7 +251,7 @@ class Net(nn.Module):
 		
 		atom_feature, super_feature = self.GraphConv_module(batch_size, vertex_mask, vertex, edge, atom_adj, bond_adj, nbs_mask)
 		prot_feature = self.CNN_module(batch_size, seq_mask, sequence)
-		
+
 		pairwise_pred = self.Pairwise_pred_module(batch_size, atom_feature, prot_feature, vertex_mask, seq_mask)
 		affinity_pred = self.Affinity_pred_module(batch_size, atom_feature, prot_feature, super_feature, vertex_mask, seq_mask, pairwise_pred)
 		

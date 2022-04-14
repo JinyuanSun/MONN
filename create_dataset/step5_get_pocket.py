@@ -27,7 +27,7 @@ def get_seq_dict(pdbid, file_type):
 				try:
 					seq+=three_to_one(res.get_resname())
 				except:
-					print('unexpected aa name', res.get_resname())
+					print(('unexpected aa name', res.get_resname()))
 				id_list.append(str(res.get_id()[1])+str(res.get_id()[2]))
 			seq_dict[chain_id] = (seq,id_list)
 	return seq_dict
@@ -40,7 +40,7 @@ count_no_seq = 0
 count_no_pocket = 0
 i = 0
 for pdbid in pdbid_list:
-	print i, pdbid
+	print(i, pdbid)
 	i += 1
 	pdb_seq_dict[pdbid] = {}
 	full_seq_dict = get_seq_dict(pdbid,'protein')
@@ -55,9 +55,9 @@ for pdbid in pdbid_list:
 	pdb_seq_dict[pdbid]['protein'] = full_seq_dict
 	pdb_seq_dict[pdbid]['pocket'] = pocket_seq_dict
 
-print 'count_no_seq', count_no_seq
-print 'count_no_pocket', count_no_pocket
-print 'seq_dict length', len(pdb_seq_dict)
+print('count_no_seq', count_no_seq)
+print('count_no_pocket', count_no_pocket)
+print('seq_dict length', len(pdb_seq_dict))
 with open('out5_pocket_dict','wb') as f:
 	pickle.dump(pdb_seq_dict, f, protocol=0)
 

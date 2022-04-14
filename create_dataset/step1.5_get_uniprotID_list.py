@@ -9,13 +9,13 @@ def get_uniprotid():
 				lines = line.strip().split('  ')
 				if lines[2] != '------':
 					uniprotid_set.add(lines[2])
-	print('uniprotid_set step1',len(uniprotid_set))
+	print(('uniprotid_set step1',len(uniprotid_set)))
 	
 	with open('out1.4_pdb_uniprot_mapping.tab') as f:
 		for line in f.readlines()[1:]:
 			lines = line.split('\t')
 			uniprotid_set.add(lines[1])
-	print('uniprotid_set step2',len(uniprotid_set))
+	print(('uniprotid_set step2',len(uniprotid_set)))
 	return uniprotid_set
 
 uniprotid_set = get_uniprotid()

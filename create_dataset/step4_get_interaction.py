@@ -10,7 +10,7 @@ def get_pdbid_list():
 	with open('out1.2_pdbid_list.txt') as f:
 		for line in f.readlines():
 			pdbid_list.append(line.strip())
-	print('pdbid_list',len(pdbid_list))
+	print(('pdbid_list',len(pdbid_list)))
 	return pdbid_list
 
 def get_pdbid_to_ligand():
@@ -27,7 +27,7 @@ def get_pdbid_to_ligand():
 					#print(line[:4], ligand)
 					continue
 				pdbid_to_ligand[line[:4]] = ligand
-	print('pdbid_to_ligand',len(pdbid_to_ligand))
+	print(('pdbid_to_ligand',len(pdbid_to_ligand)))
 	return pdbid_to_ligand
 pdbid_to_ligand = get_pdbid_to_ligand()
 
@@ -47,7 +47,10 @@ def get_bonds(pdbid, ligand, atom_idx_list):
 			lines = line.replace(' ','').split('|')
 			if ligand not in lines[5]:
 				continue
-			aa_id, aa_name, aa_chain, ligand_id, ligand_name, ligand_chain = int(lines[1]), lines[2], lines[3], int(lines[4]), lines[5], lines[6]
+			if bond_type == 'Salt Bridges':
+				aa_id, aa_name, aa_chain, ligand_id, ligand_name, ligand_chain = int(lines[1]), lines[2], lines[3], int(lines[5]), lines[6], lines[7] # fix insertion of PROT_IDX_LIST
+			else:
+				aa_id, aa_name, aa_chain, ligand_id, ligand_name, ligand_chain = int(lines[1]), lines[2], lines[3], int(lines[4]), lines[5], lines[6]
 			if bond_type in ['Hydrogen Bonds', 'Water Bridges'] :
 				atom_idx1, atom_idx2 = int(lines[12]), int(lines[14])
 				if atom_idx1 in atom_idx_list and atom_idx2 in atom_idx_list:   # discard ligand-ligand interaction
@@ -57,8 +60,8 @@ def get_bonds(pdbid, ligand, atom_idx_list):
 				elif atom_idx2 in atom_idx_list:
 					atom_idx_ligand, atom_idx_protein = atom_idx2, atom_idx1
 				else:
-					print(pdbid, ligand, bond_type, 'error: atom index in plip result not in atom_idx_list')
-					print(atom_idx1, atom_idx2)
+					print((pdbid, ligand, bond_type, 'error: atom index in plip result not in atom_idx_list'))
+					print((atom_idx1, atom_idx2))
 					return None
 				bond_list.append((bond_type+'_'+str(len(bond_list)), aa_chain, aa_name, aa_id, [atom_idx_protein], ligand_chain, ligand_name, ligand_id, [atom_idx_ligand]))
 			elif bond_type == 'Hydrophobic Interactions':
@@ -67,21 +70,23 @@ def get_bonds(pdbid, ligand, atom_idx_list):
 					continue
 				elif atom_idx_ligand not in atom_idx_list:
 					print('error: atom index in plip result not in atom_idx_list')
-					print('Hydrophobic Interactions', atom_idx_ligand, atom_idx_protein)
+					print(('Hydrophobic Interactions', atom_idx_ligand, atom_idx_protein))
 					return None
 				bond_list.append((bond_type+'_'+str(len(bond_list)), aa_chain, aa_name, aa_id, [atom_idx_protein], ligand_chain, ligand_name, ligand_id, [atom_idx_ligand]))
 			elif bond_type in ['pi-Stacking', 'pi-Cation Interactions']:
-				atom_idx_ligand_list = list(map(int, lines[11].split(',')))
+
+				atom_idx_ligand_list = list(map(int, lines[12].split(',')))
+
 				if len(set(atom_idx_ligand_list).intersection(set(atom_idx_list))) != len(atom_idx_ligand_list):
-					print(bond_type, 'error: atom index in plip result not in atom_idx_list')
+					print((bond_type, 'error: atom index in plip result not in atom_idx_list'))
 					print(atom_idx_ligand_list)
 					return None
 				bond_list.append((bond_type+'_'+str(len(bond_list)), aa_chain, aa_name, aa_id, [], ligand_chain, ligand_name, ligand_id, atom_idx_ligand_list))
 			elif bond_type == 'Salt Bridges':
-				atom_idx_ligand_list = list(set(map(int, lines[10].split(','))))
+				atom_idx_ligand_list = list(set(map(int, lines[11].split(','))))
 				if len(set(atom_idx_ligand_list).intersection(set(atom_idx_list))) != len(atom_idx_ligand_list):
 					print('error: atom index in plip result not in atom_idx_list')
-					print('Salt Bridges', atom_idx_ligand_list, set(atom_idx_ligand_list).intersection(set(atom_idx_list)))
+					print(('Salt Bridges', atom_idx_ligand_list, set(atom_idx_ligand_list).intersection(set(atom_idx_list))))
 					return None
 				bond_list.append((bond_type+'_'+str(len(bond_list)), aa_chain, aa_name, aa_id, [], ligand_chain, ligand_name, ligand_id, atom_idx_ligand_list))
 			elif bond_type == 'Halogen Bonds':
@@ -94,11 +99,11 @@ def get_bonds(pdbid, ligand, atom_idx_list):
 					atom_idx_ligand, atom_idx_protein = atom_idx2, atom_idx1
 				else:
 					print('error: atom index in plip result not in atom_idx_list')
-					print('Halogen Bonds', atom_idx1, atom_idx2)
+					print(('Halogen Bonds', atom_idx1, atom_idx2))
 					return None
 				bond_list.append((bond_type+'_'+str(len(bond_list)), aa_chain, aa_name, aa_id, [atom_idx_protein], ligand_chain, ligand_name, ligand_id, [atom_idx_ligand]))
 			else:
-				print('bond_type',bond_type)
+				print(('bond_type',bond_type))
 				print(header)
 				print(lines)
 				return None
@@ -135,7 +140,10 @@ def get_mol_from_ligandpdb(ligand):
 	name_order_list = []
 	name_to_idx_dict, name_to_element_dict = {}, {}
 	p = PDBParser()
-	structure = p.get_structure(ligand, './pdb_files/'+ligand+'_ideal.pdb')
+	try:
+		structure = p.get_structure(ligand, './pdb_files/'+ligand+'_ideal.pdb')
+	except ValueError:
+		return None, None, None
 	for model in structure:
 		for chain in model:
 			chain_id = chain.get_id()
@@ -197,7 +205,7 @@ def get_seq(pdbid):
 					seq+=three_to_one(res.get_resname())
 					idx_to_aa_dict[chain_id+str(res.get_id()[1])+res.get_id()[2].strip()] = three_to_one(res.get_resname())
 				except:
-					print('unexpected aa name', res.get_resname())
+					print(('unexpected aa name', res.get_resname()))
 				id_list.append(res.get_id()[1])
 			seq_dict[chain_id] = (seq,id_list)
 	return seq_dict, idx_to_aa_dict
@@ -227,7 +235,7 @@ interaction_dict = {}
 pdbid_list = get_pdbid_list()
 for pdbid in pdbid_list:
 	i += 1
-	print(i, pdbid)
+	print((i, pdbid))
 	if pdbid not in pdbid_to_ligand:
 		no_valid_ligand += 1
 		continue
@@ -237,11 +245,11 @@ for pdbid in pdbid_list:
 	atom_idx_list, atom_name_list =  get_atoms_from_pdb(ligand, pdbid)  # for bond atom identification
 	if atom_idx_list is None:
 		no_such_ligand_in_pdb_error += 1
-		print('no such ligand in pdb','pdbid', pdbid, 'ligand', ligand)
+		print(('no such ligand in pdb','pdbid', pdbid, 'ligand', ligand))
 		continue
 	bond_list = get_bonds(pdbid, ligand, atom_idx_list)
 	if bond_list is None:
-		print('empty bond list: pdbid', pdbid, 'ligand', ligand, 'atom_idx_list', len(atom_idx_list))
+		print(('empty bond list: pdbid', pdbid, 'ligand', ligand, 'atom_idx_list', len(atom_idx_list)))
 		no_interaction_detected_error += 1
 		continue
 	interact_atom_name_list, interact_bond_type_list = get_interact_atom_name(atom_idx_list, atom_name_list,bond_list)
@@ -275,13 +283,13 @@ for pdbid in pdbid_list:
 	interaction_dict[pdbid+'_'+ligand]['residue_interact'] = interact_residue_list
 	
 
-print('interaction_dict', len(interaction_dict))
-print('no_valid_ligand error', no_valid_ligand)
-print('no_such_ligand_in_pdb_error', no_such_ligand_in_pdb_error)
-print('no_interaction_detected_error', no_interaction_detected_error)
-print('no_ideal_pdb_error',no_ideal_pdb_error)
-print('empty_atom_interact_list',empty_atom_interact_list)
-print('protein_seq_error',protein_seq_error)
+print(('interaction_dict', len(interaction_dict)))
+print(('no_valid_ligand error', no_valid_ligand))
+print(('no_such_ligand_in_pdb_error', no_such_ligand_in_pdb_error))
+print(('no_interaction_detected_error', no_interaction_detected_error))
+print(('no_ideal_pdb_error',no_ideal_pdb_error))
+print(('empty_atom_interact_list',empty_atom_interact_list))
+print(('protein_seq_error',protein_seq_error))
 
 with open('out4_interaction_dict', 'wb') as f:
 	pickle.dump(interaction_dict, f, protocol=0)
