@@ -30,7 +30,7 @@ This software is copyrighted by Machine Learning and Computational Biology Group
 The algorithm and data can be used only for NON COMMERCIAL purposes.
 
 ---- 
-## Notes
+## Upgrade Notes
 ### Preset conda environment
 ```bash
 git clone https://github.com/JinyuanSun/MONN.git
