@@ -1,4 +1,7 @@
 ## Codes for "MONN: a Multi-Objective Neural Network for Predicting Pairwise Non-Covalent Interactions and Binding Affinities between Compounds and Proteins"
+--- 
+## Forked from the [official repo](https://github.com/lishuya17/MONN.git) and upgraded the python and torch version for Amper GPU.
+---
 
 The benchmark dataset described in this paper can be found in ./data/, and the creation of this dataset can be reproduced by the protocol in ./create_dataset/.
 
